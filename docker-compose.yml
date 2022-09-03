@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+    traefik:
+        image: traefik:v2.8
+        command:
+            - --log.level=DEBUG
+            - --providers.docker
+            - --api.insecure=true
+            - --entryPoints.web.address=:80
+            - --entryPoints.websecure.address=:443
+            - --certificatesResolvers.proxyresolver.acme.email=${LETS_ENCRYPT_EMAIL}
+            - --certificatesresolvers.proxyresolver.acme.storage=/letsencrypt/acme.json
+            - --certificatesresolvers.proxyresolver.acme.caServer=https://acme-v02.api.letsencrypt.org/directory
+            - --certificatesresolvers.proxyresolver.acme.httpchallenge=true
+            - --certificatesresolvers.proxyresolver.acme.httpchallenge.entrypoint=web
+        labels:
+            - traefik.http.middlewares.httpsonly.redirectscheme.scheme=https
+            - traefik.http.middlewares.httpsonly.redirectscheme.permanent=true
+            - traefik.http.routers.httpsonly.rule=HostRegexp(`{any:.*}`)
+            - traefik.http.routers.httpsonly.middlewares=httpsonly
+            - traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN_NAME}`)
+            - traefik.http.routers.dashboard.service=dashboard@internal
+            - traefik.http.routers.api.rule=Host(`traefik.${DOMAIN_NAME}`) && PathPrefix(`/api`)
+            - traefik.http.routers.api.service=api@internal
+            - traefik.http.routers.dashboard.tls=true
+            - traefik.http.routers.dashboard.tls.certresolver=proxyresolver
+            - traefik.http.routers.api.tls=true
+            - traefik.http.routers.api.tls.certresolver=proxyresolver
+        ports:
+            - 80:80
+            - 443:443
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+            - ./letsencrypt:/letsencrypt
+networks:
+    default:
+        name: proxy
+        external: true
+    
