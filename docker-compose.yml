@@ -33,6 +33,7 @@ services:
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock:ro
             - ./letsencrypt:/letsencrypt
+        restart: unless-stopped
 networks:
     default:
         name: proxy
