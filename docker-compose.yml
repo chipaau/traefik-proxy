@@ -2,14 +2,16 @@ version: "3.9"
 
 services:
     traefik:
-        image: traefik:v2.8
+        image: traefik:v2.9
         command:
             - --log.level=DEBUG
             - --providers.docker
             - --api.insecure=true
+            - --accesslog=true
+            - --accesslog.filepath=/traefik/logs/access.log
             - --entryPoints.web.address=:80
             - --entryPoints.websecure.address=:443
-            - --certificatesResolvers.proxyresolver.acme.email=${LETS_ENCRYPT_EMAIL}
+            - --certificatesResolvers.proxyresolver.acme.email=example@example.com
             - --certificatesresolvers.proxyresolver.acme.storage=/letsencrypt/acme.json
             - --certificatesresolvers.proxyresolver.acme.caServer=https://acme-v02.api.letsencrypt.org/directory
             - --certificatesresolvers.proxyresolver.acme.httpchallenge=true
@@ -19,9 +21,9 @@ services:
             - traefik.http.middlewares.httpsonly.redirectscheme.permanent=true
             - traefik.http.routers.httpsonly.rule=HostRegexp(`{any:.*}`)
             - traefik.http.routers.httpsonly.middlewares=httpsonly
-            - traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN_NAME}`)
+            - traefik.http.routers.dashboard.rule=Host(`traefik.localhost`)
             - traefik.http.routers.dashboard.service=dashboard@internal
-            - traefik.http.routers.api.rule=Host(`traefik.${DOMAIN_NAME}`) && PathPrefix(`/api`)
+            - traefik.http.routers.api.rule=Host(`traefik.localhost`) && PathPrefix(`/api`)
             - traefik.http.routers.api.service=api@internal
             - traefik.http.routers.dashboard.tls=true
             - traefik.http.routers.dashboard.tls.certresolver=proxyresolver
@@ -33,6 +35,7 @@ services:
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock:ro
             - ./letsencrypt:/letsencrypt
+            - ./logs/access.log:/traefik/logs/access.log
         restart: unless-stopped
 networks:
     default:
